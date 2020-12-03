@@ -49,8 +49,9 @@ class playlist(public_auth):
         self.playlist = self.sp.playlist(playlist_id)
         self.playlist_tracks = self.playlist['tracks']['items']
         self.playlist_df = pd.DataFrame()
-        # _, self.pca_components_ = self.pca()
-        # self.playlist_uri = self.convert_uri(playlist_id)
+        self.pca = self.execute_pca()
+        self.center = self.pca.inverse_transform(coords)
+        self.playlist_uri = self.convert_uri(playlist_id)
         
     def convert_uri(self, playlist_id: str):
         """
@@ -66,7 +67,6 @@ class playlist(public_auth):
         if "/" in playlist_id:
             return playlist_id.split('/')[-1]
         return playlist_id.split(':')[-1]
-
 
 
     def get_artists(self):
@@ -88,7 +88,7 @@ class playlist(public_auth):
     def get_genres(self):
         if 'artists' not in self.playlist_df.columns:
             self.get_artists()
-        genres_list = []
+
         def get_genre(artist_list):
             genre_counter = Counter()
             for artist in artist_list:
@@ -97,7 +97,7 @@ class playlist(public_auth):
             return genre_counter
 
         self.playlist_df['genres'] = self.playlist_df['artists'].apply(lambda x: get_genre(x))
-        print(self.playlist_df)
+
 
 
     def get_audio_features(self):
@@ -113,13 +113,18 @@ class playlist(public_auth):
         
 
 
-    def pca(self, n_components = 4):
+    def execute_pca(self, n_components = 4):
         # we ignore analysis_url, duration_ms, id, track_href, type, uri as logistical
         # we ignore key because songs can have any key; mode captures the major or minor characteristics
-        pca_df = self.playlist_df[['acousticness', 'danceability','energy', 'instrumentalness', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence']]
-        pca = decomposition.PCA(n_components=n_components)
-        pca.fit(pca_df)
-        return pca_df, pca.components_
+        pca_input_df = self.playlist_df[['acousticness', 'danceability','energy', 'instrumentalness', 
+                                         'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence']]
+        self.pca = decomposition.PCA(n_components=n_components)
+        self.pca.fit(pca_input_df)
+        return self.pca
+
+    def find_center():
+        pass
+
 
 
     def pickle_attribute(self, features: dict):
